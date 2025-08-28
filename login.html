@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Notas de Venda - Agronorte</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            padding: 20px;
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #4CAF50;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .login-title {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-btn:hover {
+            background: #45a049;
+        }
+        
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: #f44336;
+            margin-top: 15px;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 15px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-logo">🛒</div>
+            <h1 class="login-title">AGRONORTE</h1>
+            <p class="login-subtitle">Sistema de Notas de Venda</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="usuario">Usuário:</label>
+                    <input type="text" id="usuario" name="usuario" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="senha">Senha:</label>
+                    <input type="password" id="senha" name="senha" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">Entrar</button>
+                
+                <div class="loading" id="loading">Verificando credenciais...</div>
+                <div class="error-message" id="errorMessage"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Verificar se já está logado
+            checkAuthStatus();
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const usuario = document.getElementById('usuario').value.trim();
+                const senha = document.getElementById('senha').value.trim();
+                
+                if (!usuario || !senha) {
+                    showError('Por favor, preencha todos os campos.');
+                    return;
+                }
+                
+                // Mostrar loading
+                loginBtn.disabled = true;
+                loading.style.display = 'block';
+                errorMessage.style.display = 'none';
+                
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ usuario, senha })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Login bem-sucedido, redirecionar para o sistema
+                        window.location.href = '/';
+                    } else {
+                        showError(data.message || 'Erro ao fazer login');
+                    }
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    showError('Erro de conexão. Tente novamente.');
+                } finally {
+                    loginBtn.disabled = false;
+                    loading.style.display = 'none';
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            async function checkAuthStatus() {
+                try {
+                    const response = await fetch('/api/auth/check-auth', {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.authenticated) {
+                        // Já está logado, redirecionar
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    console.error('Erro ao verificar autenticação:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
